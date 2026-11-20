@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.git/
+.superpowers/
+.vs/
+docs/
+*.pdf
+task.txt

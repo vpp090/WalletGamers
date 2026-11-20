@@ -424,3 +424,11 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# Assessment brief (not part of the deliverable)
+task.txt
+*.pdf
+
+# Session working docs (design spec, implementation plan, agent workspace)
+docs/superpowers/
+.superpowers/

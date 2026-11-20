@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: casino
+      POSTGRES_PASSWORD: casino
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casino -d game -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  wallet:
+    build:
+      context: .
+      dockerfile: src/Wallet.Api/Dockerfile
+    environment:
+      ConnectionStrings__Wallet: Host=postgres;Database=wallet;Username=casino;Password=casino
+    restart: on-failure
+    ports:
+      - "5001:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  game:
+    build:
+      context: .
+      dockerfile: src/Game.Api/Dockerfile
+    environment:
+      ConnectionStrings__Game: Host=postgres;Database=game;Username=casino;Password=casino
+      Wallet__BaseUrl: http://wallet:8080
+    restart: on-failure
+    ports:
+      - "5002:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wallet:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  client:
+    profiles: ["client"]
+    build:
+      context: .
+      dockerfile: src/Casino.Cli/Dockerfile
+    stdin_open: true
+    tty: true
+    environment:
+      WALLET_URL: http://wallet:8080
+      GAME_URL: http://game:8080
+    depends_on:
+      wallet:
+        condition: service_healthy
+      game:
+        condition: service_healthy
+
+volumes:
+  pgdata:
